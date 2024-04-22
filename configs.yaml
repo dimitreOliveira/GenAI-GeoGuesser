@@ -1,0 +1,17 @@
+local:
+  text:
+    model_id: google/gemma-1.1-2b-it
+    device: cpu
+  image:
+    model_id: stabilityai/sdxl-turbo
+    device: mps
+  audio:
+    model_id: cvssp/audioldm2-music
+    device: mps
+vertex:
+  text:
+    model_id: google/gemma-1.1-2b-it
+  image:
+    model_id: google/gemma-1.1-2b-it
+  audio:
+    model_id: google/gemma-1.1-2b-it

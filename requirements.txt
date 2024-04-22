@@ -1,0 +1,14 @@
+isort
+black
+flake8
+mypy
+pyyaml
+pydantic
+python-dotenv
+streamlit
+countryinfo
+scipy
+torch
+transformers
+accelerate
+diffusers

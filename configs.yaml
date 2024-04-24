@@ -7,7 +7,7 @@ local:
     device: mps
   audio:
     model_id: cvssp/audioldm2-music
-    device: mps
+    device: cpu
 vertex:
   text:
     model_id: google/gemma-1.1-2b-it

@@ -1,17 +1,18 @@
 import abc
 import logging
-import os
+import re
 from typing import Any
 
 import torch
 from diffusers import AudioLDM2Pipeline, AutoPipelineForText2Image
-from PIL import Image
 from pydantic import BaseModel
-from scipy.io import wavfile
-from transformers import AutoModelForCausalLM, AutoTokenizer, GenerationConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+SAMPLE_RATE = 16000
 
 
 class BaseHint(BaseModel):
@@ -37,12 +38,12 @@ class TextHint(BaseHint):
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.configs["model_id"],
-            token=os.environ["HF_ACCESS_TOKEN"],
+            token=self.configs["hf_access_token"],
         )
         self.model = AutoModelForCausalLM.from_pretrained(
             self.configs["model_id"],
             torch_dtype=torch.float16,
-            token=os.environ["HF_ACCESS_TOKEN"],
+            token=self.configs["hf_access_token"],
         ).to(self.configs["device"])
         logger.info("Initialization finisehd")
 
@@ -56,10 +57,20 @@ class TextHint(BaseHint):
         text_hints = self.model.generate(
             **input_ids.to(self.configs["device"]), max_new_tokens=50
         )
-        self.hints = [
-            {"text": self.tokenizer.decode(text_hint, skip_special_tokens=True)}
-            for text_hint in text_hints
-        ]
+
+        for idx, text_hint in enumerate(text_hints):
+            text_hint = (
+                self.tokenizer.decode(text_hint, skip_special_tokens=True)
+                .strip()
+                .replace(prompt[idx], "")
+                .strip()
+            )
+            text_hint = re.sub(
+                re.escape(country), "***", text_hint, flags=re.IGNORECASE
+            )
+            self.hints.append({"text": text_hint})
+
+        logger.info(f"Text hints '{n_hints}' successfully generated")
 
 
 class ImageHint(BaseHint):
@@ -83,6 +94,7 @@ class ImageHint(BaseHint):
             guidance_scale=0.0,
         ).images
         self.hints = [{"image": img_hint} for img_hint in img_hints]
+        logger.info(f"Image hints '{n_hints}' successfully generated")
 
 
 class AudioHint(BaseHint):
@@ -92,31 +104,28 @@ class AudioHint(BaseHint):
         )
         self.model = AudioLDM2Pipeline.from_pretrained(
             self.configs["model_id"],
-            torch_dtype=torch.float16,
+            # torch_dtype=torch.float16,  # Not working with MacOS
         ).to(self.configs["device"])
         logger.info("Initialization finisehd")
 
     def generate_hint(self, country: str, n_hints: int):
         logger.info(f"Generating '{n_hints}' audio hints")
         prompt = f"A sound that resembles the country of {country}"
-        negative_prompt = "Low quality."
+        negative_prompt = "Low quality"
 
         audio_hints = self.model(
             prompt,
             negative_prompt=negative_prompt,
             num_inference_steps=200,
             audio_length_in_s=10.0,
-            # num_inference_steps=20,
-            # audio_length_in_s=2,
             num_waveforms_per_prompt=n_hints,
         ).audios
 
-        hints = []
         for audio_hint in audio_hints:
-            hints.append(
+            self.hints.append(
                 {
                     "audio": audio_hint,
-                    "sample_rate": 16000,
+                    "sample_rate": SAMPLE_RATE,
                 }
             )
-        self.hints = hints
+        logger.info(f"Audio hints '{n_hints}' successfully generated")

@@ -1,10 +1,10 @@
 import logging
+import os
 import random
 
 import streamlit as st
-
-# from dotenv import load_dotenv
 from countryinfo import CountryInfo
+from dotenv import load_dotenv
 
 from common import HintType, configs, get_distance
 from hint import AudioHint, ImageHint, TextHint
@@ -13,6 +13,7 @@ from hint import AudioHint, ImageHint, TextHint
 @st.cache_resource()
 def setup_text_hint(configs: dict) -> TextHint:
     with st.spinner("Loading text model..."):
+        configs["hf_access_token"] = os.environ["HF_ACCESS_TOKEN"]
         textHint = TextHint(configs=configs)
         textHint.initialize()
     return textHint
@@ -65,7 +66,7 @@ st.set_page_config(
     page_icon="🌎",
 )
 
-# load_dotenv()
+load_dotenv()
 country_list = get_country_list()
 
 if not st.session_state:
@@ -145,7 +146,7 @@ if st.session_state["game_started"]:
                 guess_latlong = CountryInfo(guess).latlng()
                 distance = int(get_distance(country_latlong, guess_latlong))
                 st.error(
-                    f"Wrong guess, you missed the correct country by {distance} KM, try again."
+                    f"Wrong guess, you missed the correct country by {distance} KM."
                 )
             else:
                 st.error("Pick a country.")

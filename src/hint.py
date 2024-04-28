@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 SAMPLE_RATE = 16000
 
 
-class BaseHint(BaseModel):
+class BaseHint(BaseModel, abc.ABC):
     configs: dict
     hints: list = []
     model: Any = None

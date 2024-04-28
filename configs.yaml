@@ -8,9 +8,9 @@ local:
     top_k: 8
   image:
     model_id: stabilityai/sdxl-turbo
+    device: cpu
     num_inference_steps: 1
     guidance_scale: 0.0
-    device: mps
   audio:
     model_id: cvssp/audioldm2-music
     device: cpu

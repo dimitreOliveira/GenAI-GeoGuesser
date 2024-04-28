@@ -37,7 +37,7 @@ def setup_audio_hint(configs: dict) -> AudioHint:
 
 @st.cache_resource()
 def get_country_list() -> list[str]:
-    country_list = [""] + list(CountryInfo().all().keys())
+    country_list = list(CountryInfo().all().keys())
     return country_list
 
 
@@ -101,7 +101,7 @@ if start_btn:
         reset_cache()
     else:
         st.session_state["country"] = pick_country(country_list)
-        print(f'Chosen country {st.session_state["country"]}')
+        print(f'Chosen country "{st.session_state["country"]}"')
 
         for hint_type in st.session_state["hint_types"]:
             if st.session_state["model"][hint_type] is None:
@@ -130,7 +130,7 @@ if st.session_state["game_started"]:
     game_col1, game_col2, game_col3 = st.columns([2, 1, 1])
 
     with game_col1:
-        guess = st.selectbox("Country guess", country_list)
+        guess = st.selectbox("Country guess", ([""] + country_list))
     with game_col2:
         guess_btn = st.button("Make a guess")
     with game_col3:

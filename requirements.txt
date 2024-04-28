@@ -8,7 +8,7 @@ python-dotenv
 streamlit
 countryinfo
 scipy
-torch
-transformers
-accelerate
-diffusers
+torch>=2.3.0
+transformers>=4.40.1
+accelerate>=0.29.3
+diffusers>=0.27.2

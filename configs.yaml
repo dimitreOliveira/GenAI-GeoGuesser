@@ -2,12 +2,20 @@ local:
   text:
     model_id: google/gemma-1.1-2b-it
     device: cpu
+    max_output_tokens: 50
+    temperature: 1
+    top_p: 1
+    top_k: 8
   image:
     model_id: stabilityai/sdxl-turbo
+    num_inference_steps: 1
+    guidance_scale: 0.0
     device: mps
   audio:
     model_id: cvssp/audioldm2-music
     device: cpu
+    num_inference_steps: 200
+    audio_length_in_s: 10
 vertex:
   text:
     model_id: google/gemma-1.1-2b-it

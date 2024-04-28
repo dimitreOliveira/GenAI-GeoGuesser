@@ -6,7 +6,7 @@ from typing import Any
 import torch
 from diffusers import AudioLDM2Pipeline, AutoPipelineForText2Image
 from pydantic import BaseModel
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, GenerationConfig
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -49,13 +49,23 @@ class TextHint(BaseHint):
 
     def generate_hint(self, country: str, n_hints: int):
         logger.info(f"Generating '{n_hints}' text hints")
+
+        generation_config = GenerationConfig(
+            do_sample=True,
+            max_new_tokens=self.configs["max_output_tokens"],
+            top_k=self.configs["top_k"],
+            top_p=self.configs["top_p"],
+            temperature=self.configs["temperature"],
+        )
+
         prompt = [
-            f"Describe the country {country} without mentioning its name"
+            f'Describe the country "{country}" without mentioning its name\n'
             for _ in range(n_hints)
         ]
         input_ids = self.tokenizer(prompt, return_tensors="pt")
         text_hints = self.model.generate(
-            **input_ids.to(self.configs["device"]), max_new_tokens=50
+            **input_ids.to(self.configs["device"]),
+            generation_config=generation_config,
         )
 
         for idx, text_hint in enumerate(text_hints):
@@ -68,6 +78,7 @@ class TextHint(BaseHint):
             text_hint = re.sub(
                 re.escape(country), "***", text_hint, flags=re.IGNORECASE
             )
+
             self.hints.append({"text": text_hint})
 
         logger.info(f"Text hints '{n_hints}' successfully generated")
@@ -90,8 +101,8 @@ class ImageHint(BaseHint):
         prompt = [f"An image related to the country {country}" for _ in range(n_hints)]
         img_hints = self.model(
             prompt=prompt,
-            num_inference_steps=1,
-            guidance_scale=0.0,
+            num_inference_steps=self.configs["num_inference_steps"],
+            guidance_scale=self.configs["guidance_scale"],
         ).images
         self.hints = [{"image": img_hint} for img_hint in img_hints]
         logger.info(f"Image hints '{n_hints}' successfully generated")
@@ -116,8 +127,8 @@ class AudioHint(BaseHint):
         audio_hints = self.model(
             prompt,
             negative_prompt=negative_prompt,
-            num_inference_steps=200,
-            audio_length_in_s=10.0,
+            num_inference_steps=self.configs["num_inference_steps"],
+            audio_length_in_s=self.configs["audio_length_in_s"],
             num_waveforms_per_prompt=n_hints,
         ).audios
 

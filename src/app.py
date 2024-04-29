@@ -3,18 +3,40 @@ import os
 import random
 
 import streamlit as st
+import vertexai
 from countryinfo import CountryInfo
 from dotenv import load_dotenv
 
 from common import HintType, configs, get_distance
-from hint import AudioHint, ImageHint, TextHint
+from hint import AudioHint, ImageHint, TextHint, TextHintVertex
+
+
+def setup_models(_cache, configs) -> None:
+    for model_type in _cache["hint_types"]:
+        if _cache["model"][model_type] is None:
+            if model_type == HintType.TEXT.value:
+                _cache["model"][model_type] = setup_text_hint(configs)
+            elif model_type == HintType.IMAGE.value:
+                _cache["model"][model_type] = setup_image_hint(configs)
+            elif model_type == HintType.AUDIO.value:
+                _cache["model"][model_type] = setup_audio_hint(configs)
 
 
 @st.cache_resource()
-def setup_text_hint(configs: dict) -> TextHint:
+def setup_text_hint(configs: dict) -> TextHint | TextHintVertex:
     with st.spinner("Loading text model..."):
-        configs["hf_access_token"] = os.environ["HF_ACCESS_TOKEN"]
-        textHint = TextHint(configs=configs)
+        if configs["vertex"]["to_use"]:
+            model_configs = configs["vertex"][HintType.TEXT.value.lower()]
+            if not st.session_state["vertex_initialized"]:
+                setup_vertex(
+                    configs["vertex"]["project"],
+                    configs["vertex"]["location"],
+                )
+            textHint = TextHintVertex(configs=model_configs)
+        else:
+            model_configs = configs["local"][HintType.TEXT.value.lower()]
+            model_configs["hf_access_token"] = os.environ["HF_ACCESS_TOKEN"]
+            textHint = TextHint(configs=model_configs)
         textHint.initialize()
     return textHint
 
@@ -22,7 +44,8 @@ def setup_text_hint(configs: dict) -> TextHint:
 @st.cache_resource()
 def setup_image_hint(configs: dict) -> ImageHint:
     with st.spinner("Loading image model..."):
-        imageHint = ImageHint(configs=configs)
+        model_configs = configs["local"][HintType.IMAGE.value.lower()]
+        imageHint = ImageHint(configs=model_configs)
         imageHint.initialize()
     return imageHint
 
@@ -30,9 +53,22 @@ def setup_image_hint(configs: dict) -> ImageHint:
 @st.cache_resource()
 def setup_audio_hint(configs: dict) -> AudioHint:
     with st.spinner("Loading audio model..."):
-        audioHint = AudioHint(configs=configs)
+        model_configs = configs["local"][HintType.AUDIO.value.lower()]
+        audioHint = AudioHint(configs=model_configs)
         audioHint.initialize()
     return audioHint
+
+
+@st.cache_resource()
+def setup_vertex(project: str, location: str) -> None:
+    """Setups the Vertex AI project.
+
+    Args:
+        project (str): Vertex AI project name
+        location (str): Vertex AI project location
+    """
+    vertexai.init(project=project, location=location)
+    logger.info("Vertex AI setup finished")
 
 
 @st.cache_resource()
@@ -51,6 +87,7 @@ def reset_cache() -> None:
     st.session_state["hint_types"] = []
     st.session_state["n_hints"] = 1
     st.session_state["game_started"] = False
+    st.session_state["vertex_initialized"] = False
     st.session_state["model"] = {
         HintType.TEXT.value: None,
         HintType.IMAGE.value: None,
@@ -103,21 +140,9 @@ if start_btn:
         st.session_state["country"] = pick_country(country_list)
         print(f'Chosen country "{st.session_state["country"]}"')
 
-        for hint_type in st.session_state["hint_types"]:
-            if st.session_state["model"][hint_type] is None:
-                if hint_type == HintType.TEXT.value:
-                    st.session_state["model"][hint_type] = setup_text_hint(
-                        configs["local"][hint_type.lower()]
-                    )
-                elif hint_type == HintType.IMAGE.value:
-                    st.session_state["model"][hint_type] = setup_image_hint(
-                        configs["local"][hint_type.lower()]
-                    )
-                elif hint_type == HintType.AUDIO.value:
-                    st.session_state["model"][hint_type] = setup_audio_hint(
-                        configs["local"][hint_type.lower()]
-                    )
+        setup_models(st.session_state, configs)
 
+        for hint_type in st.session_state["hint_types"]:
             with st.spinner(f"Generating {hint_type} hint..."):
                 st.session_state["model"][hint_type].generate_hint(
                     st.session_state["country"],

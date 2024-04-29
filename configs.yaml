@@ -1,14 +1,15 @@
 local:
+  to_use: true
   text:
     model_id: google/gemma-1.1-2b-it
     device: cpu
     max_output_tokens: 50
     temperature: 1
-    top_p: 1
-    top_k: 8
+    top_p: 0.95
+    top_k: 32
   image:
     model_id: stabilityai/sdxl-turbo
-    device: cpu
+    device: mps
     num_inference_steps: 1
     guidance_scale: 0.0
   audio:
@@ -17,9 +18,12 @@ local:
     num_inference_steps: 200
     audio_length_in_s: 10
 vertex:
+  to_use: true
+  project: {VERTEX_AI_PROJECT}
+  location: {VERTEX_AI_LOCALTION}
   text:
-    model_id: google/gemma-1.1-2b-it
-  image:
-    model_id: google/gemma-1.1-2b-it
-  audio:
-    model_id: google/gemma-1.1-2b-it
+    model_id: gemini-1.5-pro-preview-0409
+    max_output_tokens: 50
+    temperature: 1
+    top_p: 0.95
+    top_k: 32

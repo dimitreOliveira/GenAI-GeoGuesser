@@ -7,6 +7,7 @@ import torch
 from diffusers import AudioLDM2Pipeline, AutoPipelineForText2Image
 from pydantic import BaseModel
 from transformers import AutoModelForCausalLM, AutoTokenizer, GenerationConfig
+from vertexai.generative_models import GenerativeModel
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -75,6 +76,45 @@ class TextHint(BaseHint):
                 .replace(prompt[idx], "")
                 .strip()
             )
+            text_hint = re.sub(
+                re.escape(country), "***", text_hint, flags=re.IGNORECASE
+            )
+
+            self.hints.append({"text": text_hint})
+
+        logger.info(f"Text hints '{n_hints}' successfully generated")
+
+
+class TextHintVertex(BaseHint):
+    def initialize(self):
+        logger.info(
+            f"""Initializing text hint with model '{self.configs["model_id"]}'"""
+        )
+        self.model = GenerativeModel(self.configs["model_id"])
+
+        logger.info("Initialization finisehd")
+
+    def generate_hint(self, country: str, n_hints: int):
+        logger.info(f"Generating '{n_hints}' text hints")
+
+        prompts = [
+            f'Describe the country "{country}" without mentioning its name\n'
+            for _ in range(n_hints)
+        ]
+
+        for prompt in prompts:
+            responses = self.model.generate_content(
+                prompt,
+                generation_config={
+                    "max_output_tokens": self.configs["max_output_tokens"],
+                    "top_k": self.configs["top_k"],
+                    "top_p": self.configs["top_p"],
+                    "temperature": self.configs["temperature"],
+                },
+            )
+
+            text_hint = responses.candidates[0].content.parts[0].text
+
             text_hint = re.sub(
                 re.escape(country), "***", text_hint, flags=re.IGNORECASE
             )

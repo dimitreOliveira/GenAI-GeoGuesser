@@ -1,7 +1,7 @@
 import logging
 import os
-import random
 
+import pandas as pd
 import streamlit as st
 import vertexai
 from countryinfo import CountryInfo
@@ -72,18 +72,30 @@ def setup_vertex(project: str, location: str) -> None:
 
 
 @st.cache_resource()
-def get_country_list() -> list[str]:
+def get_country_list() -> pd.DataFrame:
     country_list = list(CountryInfo().all().keys())
-    return country_list
+
+    country_df = {}
+    for country in country_list:
+        try:
+            area = CountryInfo(country).area()
+            country_df[country] = area
+        except:
+            pass
+
+    country_df = pd.DataFrame(country_df.items(), columns=["country", "area"])
+    return country_df
 
 
-def pick_country(country_list) -> str:
-    country = random.choice(country_list)
+def pick_country(country_df: pd.DataFrame) -> str:
+    country = country_df.sample(n=1, weights="area")["country"].iloc[0]
     return country
 
 
 def reset_cache() -> None:
-    st.session_state["country"] = ""
+    country_df = get_country_list()
+    st.session_state["country_list"] = country_df["country"].values.tolist()
+    st.session_state["country"] = pick_country(country_df)
     st.session_state["hint_types"] = []
     st.session_state["n_hints"] = 1
     st.session_state["game_started"] = False
@@ -103,10 +115,8 @@ st.set_page_config(
     page_icon="🌎",
 )
 
-load_dotenv()
-country_list = get_country_list()
-
 if not st.session_state:
+    load_dotenv()
     reset_cache()
 
 st.title("Generative AI GeoGuesser 🌎")
@@ -137,7 +147,6 @@ if start_btn:
         st.error("Pick at least one hint type")
         reset_cache()
     else:
-        st.session_state["country"] = pick_country(country_list)
         print(f'Chosen country "{st.session_state["country"]}"')
 
         setup_models(st.session_state, configs)
@@ -155,7 +164,7 @@ if st.session_state["game_started"]:
     game_col1, game_col2, game_col3 = st.columns([2, 1, 1])
 
     with game_col1:
-        guess = st.selectbox("Country guess", ([""] + country_list))
+        guess = st.selectbox("Country guess", ([""] + st.session_state["country_list"]))
     with game_col2:
         guess_btn = st.button("Make a guess")
     with game_col3:
@@ -171,7 +180,10 @@ if st.session_state["game_started"]:
                 guess_latlong = CountryInfo(guess).latlng()
                 distance = int(get_distance(country_latlong, guess_latlong))
                 st.error(
-                    f"Wrong guess, you missed the correct country by {distance} KM."
+                    f"""
+                    Wrong guess, you missed the correct country by {distance} KM.
+                    The correct answer was {st.session_state["country"]}.
+                    """
                 )
             else:
                 st.error("Pick a country.")

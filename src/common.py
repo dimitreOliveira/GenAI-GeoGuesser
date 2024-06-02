@@ -21,6 +21,15 @@ def parse_configs(configs_path: str) -> dict:
 
 
 def get_distance(source_country: list[float], target_country: list[float]) -> float:
+    """Calculate the distance between two countries.
+
+    Args:
+        source_country (list[float]): Source country coordinates
+        target_country (list[float]): Target country coordinates
+
+    Returns:
+        float: Distance in KM
+    """
     source_lat = radians(source_country[0])
     source_long = radians(source_country[1])
     target_lat = radians(target_country[0])

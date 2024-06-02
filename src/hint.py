@@ -23,10 +23,17 @@ class BaseHint(BaseModel, abc.ABC):
 
     @abc.abstractmethod
     def initialize(self):
+        """Initialize the hint model."""
         pass
 
     @abc.abstractmethod
     def generate_hint(self, country: str, n_hints: int):
+        """Generate hints.
+
+        Args:
+            country (str): Country name used to base the hint
+            n_hints (int): Number of hints that will be generated
+        """
         pass
 
 

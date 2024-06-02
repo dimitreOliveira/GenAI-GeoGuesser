@@ -12,6 +12,12 @@ from hint import AudioHint, ImageHint, TextHint, TextHintVertex
 
 
 def setup_models(_cache, configs) -> None:
+    """Setups all hint models.
+
+    Args:
+        _cache (_type_): Streamlit cache object
+        configs (_type_): Configurations used by the models
+    """
     for model_type in _cache["hint_types"]:
         if _cache["model"][model_type] is None:
             if model_type == HintType.TEXT.value:
@@ -24,6 +30,14 @@ def setup_models(_cache, configs) -> None:
 
 @st.cache_resource()
 def setup_text_hint(configs: dict) -> TextHint | TextHintVertex:
+    """Setups the text hint model.
+
+    Args:
+        configs (dict): Configurations used by the model
+
+    Returns:
+        TextHint | TextHintVertex: Hint model
+    """
     with st.spinner("Loading text model..."):
         if configs["vertex"]["to_use"]:
             model_configs = configs["vertex"][HintType.TEXT.value.lower()]
@@ -43,6 +57,14 @@ def setup_text_hint(configs: dict) -> TextHint | TextHintVertex:
 
 @st.cache_resource()
 def setup_image_hint(configs: dict) -> ImageHint:
+    """Setups the image hint model.
+
+    Args:
+        configs (dict): Configurations used by the model
+
+    Returns:
+        ImageHint: Hint model
+    """
     with st.spinner("Loading image model..."):
         model_configs = configs["local"][HintType.IMAGE.value.lower()]
         imageHint = ImageHint(configs=model_configs)
@@ -52,6 +74,14 @@ def setup_image_hint(configs: dict) -> ImageHint:
 
 @st.cache_resource()
 def setup_audio_hint(configs: dict) -> AudioHint:
+    """Setups the audio hint model.
+
+    Args:
+        configs (dict): Configurations used by the model
+
+    Returns:
+        AudioHint: Hint model
+    """
     with st.spinner("Loading audio model..."):
         model_configs = configs["local"][HintType.AUDIO.value.lower()]
         audioHint = AudioHint(configs=model_configs)
@@ -73,6 +103,11 @@ def setup_vertex(project: str, location: str) -> None:
 
 @st.cache_resource()
 def get_country_list() -> pd.DataFrame:
+    """Builds a database of countries and metadata.
+
+    Returns:
+        pd.DataFrame: Country database
+    """
     country_list = list(CountryInfo().all().keys())
 
     country_df = {}
@@ -88,11 +123,20 @@ def get_country_list() -> pd.DataFrame:
 
 
 def pick_country(country_df: pd.DataFrame) -> str:
+    """Selects a country, the probability of each country is related to its area size.
+
+    Args:
+        country_df (pd.DataFrame): Database of country and their metadata
+
+    Returns:
+        str: The selected country
+    """
     country = country_df.sample(n=1, weights="area")["country"].iloc[0]
     return country
 
 
 def reset_cache() -> None:
+    """Reset the Streamlit APP cache."""
     country_df = get_country_list()
     st.session_state["country_list"] = country_df["country"].values.tolist()
     st.session_state["country"] = pick_country(country_df)

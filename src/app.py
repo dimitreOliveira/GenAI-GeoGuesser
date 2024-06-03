@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -11,12 +12,12 @@ from common import HintType, configs, get_distance
 from hint import AudioHint, ImageHint, TextHint, TextHintVertex
 
 
-def setup_models(_cache, configs) -> None:
+def setup_models(_cache: Any, configs: dict) -> None:
     """Setups all hint models.
 
     Args:
-        _cache (_type_): Streamlit cache object
-        configs (_type_): Configurations used by the models
+        _cache (st.session_state): Streamlit cache object
+        configs (dict): Configurations used by the models
     """
     for model_type in _cache["hint_types"]:
         if _cache["model"][model_type] is None:
